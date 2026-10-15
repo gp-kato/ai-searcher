@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('url');
             $table->text('description');
             $table->string('function');
-            $table->enum('pricing_system', ['Free', 'Paid']);
+            $table->enum('pricing_system', ['Free', 'Freemium', 'Paid']);
             $table->string('thumbnail')->nullable();
             $table->timestamps();
         });
