@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Tool extends Model
 {
@@ -12,7 +13,6 @@ class Tool extends Model
         'name',
         'url',
         'description',
-        'function',
         'pricing_system',
         'thumbnail',
     ];
@@ -20,5 +20,10 @@ class Tool extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function functions(): BelongsToMany
+    {
+        return $this->belongsToMany(ToolFunction::class, 'tool_function', 'tool_id', 'function_id');
     }
 }
