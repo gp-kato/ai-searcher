@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('tools', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('category_id')->constrained()->restrictOnDelete();
             $table->string('name');
             $table->string('url');
             $table->text('description');
