@@ -26,4 +26,9 @@ class Tool extends Model
     {
         return $this->belongsToMany(ToolFunction::class, 'tool_function', 'tool_id', 'function_id');
     }
+
+    public function tag(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'tool_tag', 'tool_id', 'tag_id');
+    }
 }
