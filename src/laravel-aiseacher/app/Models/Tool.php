@@ -24,11 +24,11 @@ class Tool extends Model
 
     public function functions(): BelongsToMany
     {
-        return $this->belongsToMany(ToolFunction::class, 'tool_function', 'tool_id', 'function_id');
+        return $this->belongsToMany(ToolFunction::class, 'tool_function', 'tool_id', 'function_id')->withTimestamps();
     }
 
     public function tag(): BelongsToMany
     {
-        return $this->belongsToMany(Tag::class, 'tool_tag', 'tool_id', 'tag_id');
+        return $this->belongsToMany(Tag::class, 'tool_tag', 'tool_id', 'tag_id')->withTimestamps();
     }
 }
