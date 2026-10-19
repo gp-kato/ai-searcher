@@ -16,6 +16,6 @@ class ToolFunction extends Model
 
     public function tools(): BelongsToMany
     {
-        return $this->belongsToMany(Tool::class, 'tool_function', 'function_id', 'tool_id');
+        return $this->belongsToMany(Tool::class, 'tool_function', 'function_id', 'tool_id')->withTimestamps();
     }
 }
