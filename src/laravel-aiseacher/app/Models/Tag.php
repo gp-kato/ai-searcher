@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Tag extends Model
 {
@@ -12,8 +12,8 @@ class Tag extends Model
         'slug',
     ];
 
-    public function tools(): HasMany
+    public function tools(): belongsToMany
     {
-        return $this->hasMany(Tool::class);
+        return $this->belongsToMany(Tool::class, 'tool_tag', 'tag_id', 'tool_id');
     }
 }
