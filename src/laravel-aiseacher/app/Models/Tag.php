@@ -12,8 +12,8 @@ class Tag extends Model
         'slug',
     ];
 
-    public function tools(): belongsToMany
+    public function tools(): BelongsToMany
     {
-        return $this->belongsToMany(Tool::class, 'tool_tag', 'tag_id', 'tool_id');
+        return $this->belongsToMany(Tool::class, 'tag_tool', 'tag_id', 'tool_id')->withTimestamps();
     }
 }
