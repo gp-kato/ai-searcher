@@ -58,12 +58,7 @@
                     <div class="filter-group">
                         <h3>カテゴリ</h3>
                         <div class="category-options" id="category-options">
-                            <button type="button" class="category-option is-selected" data-category="すべて"><span class="category-icon icon-all">✳</span><span>すべて</span><span class="category-count">24</span></button>
-                            <button type="button" class="category-option" data-category="文章・ライティング"><span class="category-icon icon-writing">Aa</span><span>文章・ライティング</span><span class="category-count">6</span></button>
-                            <button type="button" class="category-option" data-category="画像・デザイン"><span class="category-icon icon-image">◈</span><span>画像・デザイン</span><span class="category-count">5</span></button>
-                            <button type="button" class="category-option" data-category="動画・音声"><span class="category-icon icon-video">▷</span><span>動画・音声</span><span class="category-count">4</span></button>
-                            <button type="button" class="category-option" data-category="仕事効率化"><span class="category-icon icon-work">⌘</span><span>仕事効率化</span><span class="category-count">5</span></button>
-                            <button type="button" class="category-option" data-category="開発・コード"><span class="category-icon icon-code">&lt;/&gt;</span><span>開発・コード</span><span class="category-count">4</span></button>
+                            <button type="button" class="category-option is-selected" data-category=""><span class="category-icon icon-all">✳</span><span>すべて</span><span class="category-count">0</span></button>
                         </div>
                     </div>
                     <div class="filter-group pricing-group">
@@ -78,9 +73,10 @@
                 <div class="results-area">
                     <div class="results-heading">
                         <div><p class="section-kicker">THE DIRECTORY</p><h2>おすすめのAIツール</h2></div>
-                        <div class="results-controls"><span id="result-count" aria-live="polite">24件</span><label for="sort-select" class="sr-only">並べ替え</label><select id="sort-select"><option value="recommended">おすすめ順</option><option value="rating">評価が高い順</option><option value="newest">新着順</option></select></div>
+                        <div class="results-controls"><span id="result-count" aria-live="polite">0件</span><label for="sort-select" class="sr-only">並べ替え</label><select id="sort-select"><option value="recommended">おすすめ順</option><option value="newest">新着順</option></select></div>
                     </div>
                     <div class="active-filters" id="active-filters" aria-live="polite"></div>
+                    <p class="api-error" id="api-error" role="alert" hidden></p>
                     <div class="tool-grid" id="tool-grid"></div>
                     <div class="empty-state" id="empty-state" hidden><span>⌕</span><h3>見つかりませんでした</h3><p>キーワードや絞り込み条件を変えてお試しください。</p><button type="button" id="empty-clear">条件をリセット</button></div>
                     <div class="load-more-wrap"><button type="button" class="load-more" id="load-more">もっと見る <span aria-hidden="true">↓</span></button></div>
