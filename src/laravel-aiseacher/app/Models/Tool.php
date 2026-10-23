@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Tool extends Model
 {
@@ -15,7 +16,15 @@ class Tool extends Model
         'description',
         'pricing_system',
         'thumbnail',
+        'is_verified',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_verified' => 'boolean',
+        ];
+    }
 
     public function category(): BelongsTo
     {
@@ -30,5 +39,10 @@ class Tool extends Model
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'tag_tool', 'tool_id', 'tag_id')->withTimestamps();
+    }
+
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(ToolFavorite::class);
     }
 }
