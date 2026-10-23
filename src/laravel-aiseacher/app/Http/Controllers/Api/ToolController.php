@@ -54,6 +54,7 @@ class ToolController extends Controller
             'description' => $tool->description,
             'pricing_system' => $tool->pricing_system,
             'thumbnail' => $tool->thumbnail,
+            'is_verified' => $tool->is_verified,
             'category' => $tool->category,
             'tags' => $tool->tags,
             'functions' => $tool->functions,
