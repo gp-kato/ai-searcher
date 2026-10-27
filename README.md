@@ -24,3 +24,5 @@ AIツールをページネーション付きで取得します。指定できる
 ### `GET /api/categories`
 
 カテゴリ一覧を件数（`tools_count`）とともに返します。
+
+お気に入りと確認済みフラグの仕様は[ツール表示項目・お気に入り仕様](./docs/tool-metadata-and-favorites.md)を参照してください。
