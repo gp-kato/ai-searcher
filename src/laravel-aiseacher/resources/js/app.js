@@ -20,7 +20,6 @@ let searchTimer;
 const apiErrors = {};
 const tools = [];
 const pendingFavorites = new Set();
-const legacyFavorites = new Set(JSON.parse(localStorage.getItem('ai-finder-favorites') || '[]'));
 const browserIdKey = 'ai-finder-browser-id';
 let browserId = localStorage.getItem(browserIdKey);
 if (!browserId) {
@@ -72,7 +71,7 @@ function renderCategories(categories) {
 
 function render() {
 	grid.innerHTML = tools.map((tool, index) => {
-		const favorite = favorites.has(tool.id) || legacyFavorites.has(tool.name);
+		const favorite = favorites.has(tool.id);
 		const image = tool.thumbnail
 			? `<img src="${safeUrl(tool.thumbnail)}" alt="${escapeHtml(tool.name)}のイメージ" loading="lazy">`
 			: '';
@@ -107,45 +106,6 @@ function setError(key, message = '') {
 	apiError.hidden = apiError.textContent === '';
 }
 
-function saveLegacyFavorites() {
-	if (legacyFavorites.size) localStorage.setItem('ai-finder-favorites', JSON.stringify([...legacyFavorites]));
-	else localStorage.removeItem('ai-finder-favorites');
-}
-
-async function migrateLegacyFavorites(loadedTools) {
-	const matches = loadedTools.filter((tool) => legacyFavorites.has(tool.name));
-	if (!matches.length) return;
-
-	matches.forEach((tool) => {
-		legacyFavorites.delete(tool.name);
-		favorites.add(tool.id);
-		pendingFavorites.add(tool.id);
-	});
-	saveLegacyFavorites();
-	render();
-
-	const results = await Promise.allSettled(matches.map(async (tool) => {
-		const response = await fetch(`/api/favorites/${tool.id}`, {
-			method: 'PUT',
-			headers: { 'X-Browser-Id': browserId, Accept: 'application/json' },
-		});
-		if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
-	}));
-	results.forEach((result, index) => {
-		if (result.status === 'rejected') {
-			console.error(result.reason);
-			favorites.delete(matches[index].id);
-			legacyFavorites.add(matches[index].name);
-		}
-		pendingFavorites.delete(matches[index].id);
-	});
-	saveLegacyFavorites();
-	if (results.some((result) => result.status === 'rejected')) {
-		setError('favorites', '一部のお気に入りを移行できませんでした。時間をおいて再度お試しください。');
-	}
-	render();
-}
-
 async function loadTools({ append = false } = {}) {
 	requestController?.abort();
 	requestController = new AbortController();
@@ -165,7 +125,6 @@ async function loadTools({ append = false } = {}) {
 		const result = await response.json();
 		if (append) tools.push(...result.data);
 		else tools.splice(0, tools.length, ...result.data);
-		await migrateLegacyFavorites(result.data);
 		count.textContent = `${result.meta.total}件`;
 		lastPage = result.meta.last_page;
 		moreButton.hidden = currentPage >= lastPage;
@@ -268,14 +227,10 @@ grid.addEventListener('click', (event) => {
 	if (!button) return;
 	const toolId = Number(button.dataset.favorite);
 	if (pendingFavorites.has(toolId)) return;
-	const tool = tools.find((item) => item.id === toolId);
-	const wasLegacyFavorite = legacyFavorites.has(tool?.name);
-	const wasFavorite = favorites.has(toolId) || wasLegacyFavorite;
+	const wasFavorite = favorites.has(toolId);
 	pendingFavorites.add(toolId);
 	if (wasFavorite) favorites.delete(toolId);
 	else favorites.add(toolId);
-	if (tool) legacyFavorites.delete(tool.name);
-	saveLegacyFavorites();
 	render();
 	void fetch(`/api/favorites/${toolId}`, {
 		method: wasFavorite ? 'DELETE' : 'PUT',
@@ -287,8 +242,6 @@ grid.addEventListener('click', (event) => {
 		console.error(error);
 		if (wasFavorite) favorites.add(toolId);
 		else favorites.delete(toolId);
-		if (wasLegacyFavorite && tool) legacyFavorites.add(tool.name);
-		saveLegacyFavorites();
 		setError('favorites', 'お気に入りを保存できませんでした。時間をおいて再度お試しください。');
 	}).finally(() => {
 		pendingFavorites.delete(toolId);
