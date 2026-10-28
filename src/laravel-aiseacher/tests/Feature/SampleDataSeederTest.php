@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Tool;
 use Database\Seeders\SampleDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class SampleDataSeederTest extends TestCase
@@ -12,8 +14,28 @@ class SampleDataSeederTest extends TestCase
 
     public function test_sample_data_is_repeatable_and_searchable_across_pages(): void
     {
-        $this->seed(SampleDataSeeder::class);
-        $this->seed(SampleDataSeeder::class);
+        Carbon::setTestNow('2026-10-28 12:00:00');
+        try {
+            $this->seed(SampleDataSeeder::class);
+            $createdAtByUrl = Tool::query()
+                ->orderBy('url')
+                ->get(['url', 'created_at'])
+                ->mapWithKeys(fn (Tool $tool): array => [$tool->url => $tool->created_at->toDateTimeString()])
+                ->all();
+
+            Carbon::setTestNow('2026-11-15 12:00:00');
+            $this->seed(SampleDataSeeder::class);
+            $rerunCreatedAtByUrl = Tool::query()
+                ->orderBy('url')
+                ->get(['url', 'created_at'])
+                ->mapWithKeys(fn (Tool $tool): array => [$tool->url => $tool->created_at->toDateTimeString()])
+                ->all();
+        } finally {
+            Carbon::setTestNow();
+        }
+
+        $this->assertSame($createdAtByUrl, $rerunCreatedAtByUrl);
+        $this->assertGreaterThan(1, count(array_unique(array_values($createdAtByUrl))));
 
         $this->assertDatabaseCount('categories', 4);
         $this->assertDatabaseCount('tools', 12);

@@ -191,18 +191,20 @@ class SampleDataSeeder extends Seeder
         $now = now();
         foreach ($tools as $sample) {
             $createdAt = $now->copy()->subDays($sample['days_ago']);
-            $tool = Tool::query()->updateOrCreate(
-                ['url' => "https://example.com/ai-searcher/sample/{$sample['slug']}"],
-                [
-                    'category_id' => $categoryIds[$sample['category']],
-                    'name' => $sample['name'],
-                    'description' => $sample['description'],
-                    'pricing_system' => $sample['pricing'],
-                    'thumbnail' => null,
-                    'created_at' => $createdAt,
-                    'updated_at' => $createdAt,
-                ],
-            );
+            $tool = Tool::query()->firstOrNew([
+                'url' => "https://example.com/ai-searcher/sample/{$sample['slug']}",
+            ]);
+            if (! $tool->exists) {
+                $tool->created_at = $createdAt;
+            }
+            $tool->fill([
+                'category_id' => $categoryIds[$sample['category']],
+                'name' => $sample['name'],
+                'description' => $sample['description'],
+                'pricing_system' => $sample['pricing'],
+                'thumbnail' => null,
+            ]);
+            $tool->save();
 
             $tool->tags()->sync(array_map(fn (string $slug): int => $tagIds[$slug], $sample['tags']));
             $tool->functions()->sync(array_map(fn (string $slug): int => $functionIds[$slug], $sample['functions']));
