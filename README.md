@@ -26,3 +26,14 @@ AIツールをページネーション付きで取得します。指定できる
 カテゴリ一覧を件数（`tools_count`）とともに返します。
 
 お気に入りと確認済みフラグの仕様は[ツール表示項目・お気に入り仕様](./docs/tool-metadata-and-favorites.md)を参照してください。
+
+## 開発用サンプルデータ
+
+マイグレーション適用後、以下のコマンドでカテゴリ・AIツール・タグ・対応機能のサンプルデータを投入できます。Seederは専用の固定キーで既存レコードを更新するため、繰り返し実行しても重複しません。
+
+```sh
+docker compose exec php sh -c "cd laravel-aiseacher && php artisan migrate"
+docker compose exec php sh -c "cd laravel-aiseacher && php artisan db:seed --class=SampleDataSeeder"
+```
+
+サンプルデータは4カテゴリ・12ツールで、`Free`・`Freemium`・`Paid`を含みます。画面は`http://localhost/`で確認できます。検索欄で「文章アシスタント」（ツール名）、「業務効率化」（カテゴリ）、「議事録」（タグ）、「文字起こし」（対応機能）を検索したり、カテゴリ・料金区分・新着順を切り替えたりしてください。「もっと見る」では2ページ目の3件が追加表示されます。APIで確認する場合は、`/api/tools?q=議事録`、`/api/tools?category=sample-writing&pricing=free`、`/api/tools?sort=newest&per_page=9&page=2`を開いてください。
