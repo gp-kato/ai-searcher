@@ -45,4 +45,9 @@ class Tool extends Model
     {
         return $this->hasMany(ToolFavorite::class);
     }
+
+    public function ratings(): HasMany
+    {
+        return $this->hasMany(ToolRating::class);
+    }
 }

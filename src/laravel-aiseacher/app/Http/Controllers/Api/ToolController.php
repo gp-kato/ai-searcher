@@ -23,6 +23,8 @@ class ToolController extends Controller
 
         $tools = Tool::query()
             ->with(['category:id,name,slug', 'tags:id,name,slug', 'functions:id,name,slug'])
+            ->withAvg('ratings', 'rating')
+            ->withCount('ratings')
             ->when($filters['q'] ?? null, function (Builder $query, string $keyword): void {
                 $query->where(function (Builder $query) use ($keyword): void {
                     $query->where('name', 'like', "%{$keyword}%")
@@ -58,6 +60,8 @@ class ToolController extends Controller
             'category' => $tool->category,
             'tags' => $tool->tags,
             'functions' => $tool->functions,
+            'average_rating' => $tool->ratings_avg_rating === null ? null : round((float) $tool->ratings_avg_rating, 1),
+            'rating_count' => $tool->ratings_count,
         ]);
 
         return response()->json([
