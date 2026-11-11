@@ -27,6 +27,8 @@ class ToolApiTest extends TestCase
             ->assertJsonPath('data.0.name', 'Text Helper')
             ->assertJsonPath('data.0.category.slug', 'writing')
             ->assertJsonPath('data.0.is_verified', true)
+            ->assertJsonPath('data.0.average_rating', null)
+            ->assertJsonPath('data.0.rating_count', 0)
             ->assertJsonPath('data.0.tags.0.name', 'Text generation');
     }
 
@@ -124,6 +126,75 @@ class ToolApiTest extends TestCase
         $this->getJson('/api/favorites', ['X-Browser-Id' => 'not-a-uuid'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('browser_id');
+    }
+
+    public function test_ratings_are_saved_once_per_browser_and_aggregated(): void
+    {
+        $tool = $this->createTool($this->createCategory('Writing', 'writing'), 'Text Helper');
+        $browserId = 'b44b8c1e-c7b3-458f-a017-09ce7312d55e';
+        $otherBrowserId = '7a1dfe05-6884-4e77-94fd-126b0d03daac';
+
+        $this->getJson('/api/ratings', ['X-Browser-Id' => $browserId])
+            ->assertOk()
+            ->assertJsonPath('data', []);
+
+        $this->putJson("/api/ratings/{$tool->id}", ['rating' => 4], ['X-Browser-Id' => $browserId])
+            ->assertOk()
+            ->assertJsonPath('data.rating', 4)
+            ->assertJsonPath('data.average_rating', 4)
+            ->assertJsonPath('data.rating_count', 1);
+
+        $this->putJson("/api/ratings/{$tool->id}", ['rating' => 2], ['X-Browser-Id' => $browserId])
+            ->assertOk()
+            ->assertJsonPath('data.average_rating', 2)
+            ->assertJsonPath('data.rating_count', 1);
+
+        $this->putJson("/api/ratings/{$tool->id}", ['rating' => 4], ['X-Browser-Id' => $otherBrowserId])
+            ->assertOk()
+            ->assertJsonPath('data.average_rating', 3)
+            ->assertJsonPath('data.rating_count', 2);
+
+        $this->getJson('/api/ratings', ['X-Browser-Id' => $browserId])
+            ->assertOk()
+            ->assertJsonPath('data.0.tool_id', $tool->id)
+            ->assertJsonPath('data.0.rating', 2);
+
+        $this->getJson('/api/tools')
+            ->assertOk()
+            ->assertJsonPath('data.0.average_rating', 3)
+            ->assertJsonPath('data.0.rating_count', 2);
+
+        $this->deleteJson("/api/ratings/{$tool->id}", [], ['X-Browser-Id' => $browserId])
+            ->assertOk()
+            ->assertJsonPath('data.rating', null)
+            ->assertJsonPath('data.average_rating', 4)
+            ->assertJsonPath('data.rating_count', 1);
+
+        $this->getJson('/api/ratings', ['X-Browser-Id' => $browserId])
+            ->assertOk()
+            ->assertJsonPath('data', []);
+    }
+
+    public function test_ratings_validate_browser_id_and_score(): void
+    {
+        $tool = $this->createTool($this->createCategory('Writing', 'writing'), 'Text Helper');
+        $browserId = 'b44b8c1e-c7b3-458f-a017-09ce7312d55e';
+
+        $this->getJson('/api/ratings')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('browser_id');
+
+        $this->getJson('/api/ratings', ['X-Browser-Id' => 'not-a-uuid'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('browser_id');
+
+        $this->putJson("/api/ratings/{$tool->id}", ['rating' => 0], ['X-Browser-Id' => $browserId])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('rating');
+
+        $this->putJson("/api/ratings/{$tool->id}", ['rating' => 6], ['X-Browser-Id' => $browserId])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('rating');
     }
 
     private function createCategory(string $name, string $slug): Category

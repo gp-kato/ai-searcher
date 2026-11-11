@@ -20,6 +20,7 @@ let searchTimer;
 const apiErrors = {};
 const tools = [];
 const pendingFavorites = new Set();
+const pendingRatings = new Set();
 const browserIdKey = 'ai-finder-browser-id';
 let browserId = localStorage.getItem(browserIdKey);
 if (!browserId) {
@@ -27,6 +28,7 @@ if (!browserId) {
 	localStorage.setItem(browserIdKey, browserId);
 }
 const favorites = new Set();
+const ratings = new Map();
 
 function escapeHtml(value) {
 	return String(value ?? '').replace(/[&<>"']/g, (character) => ({
@@ -72,6 +74,7 @@ function renderCategories(categories) {
 function render() {
 	grid.innerHTML = tools.map((tool, index) => {
 		const favorite = favorites.has(tool.id);
+		const userRating = ratings.get(tool.id) || 0;
 		const image = tool.thumbnail
 			? `<img src="${safeUrl(tool.thumbnail)}" alt="${escapeHtml(tool.name)}のイメージ" loading="lazy">`
 			: '';
@@ -86,6 +89,13 @@ function render() {
 				<div class="card-body">
 					<div class="tool-title-row"><span class="tool-logo">${escapeHtml([...tool.name][0] || '?')}</span><h3 class="tool-title">${escapeHtml(tool.name)}${tool.is_verified ? '<span class="verified" aria-label="確認済み">✓</span>' : ''}</h3></div>
 					<p class="tool-description">${escapeHtml(tool.description)}</p>
+					<div class="rating-row">
+						<span class="rating-summary">${tool.average_rating === null ? '評価なし' : `<span aria-hidden="true">★</span> ${Number(tool.average_rating).toFixed(1)} (${tool.rating_count})`}</span>
+						<div class="rating-controls" role="group" aria-label="${escapeHtml(tool.name)}の評価">
+							${[1, 2, 3, 4, 5].map((rating) => `<button class="rating-button${userRating === rating ? ' is-selected' : ''}" type="button" data-rating-tool="${tool.id}" data-rating-value="${rating}" aria-label="${rating}点で評価" aria-pressed="${userRating === rating}"${pendingRatings.has(tool.id) ? ' disabled' : ''}>★</button>`).join('')}
+							${userRating ? `<button class="rating-remove" type="button" data-rating-remove="${tool.id}"${pendingRatings.has(tool.id) ? ' disabled' : ''}>取り消す</button>` : ''}
+						</div>
+					</div>
 					<div class="tag-list">${tags.map((tag) => `<span class="tool-tag">${escapeHtml(tag.name)}</span>`).join('')}</div>
 					<div class="card-footer"><span class="price-label${tool.pricing_system !== 'Paid' ? ' is-free' : ''}">${pricingLabel(tool.pricing_system)}</span><a class="tool-link" href="${safeUrl(tool.url)}" target="_blank" rel="noopener noreferrer">サイトを見る <span aria-hidden="true">↗</span></a></div>
 				</div>
@@ -223,28 +233,66 @@ document.querySelector('#active-filters').addEventListener('click', (event) => {
 });
 
 grid.addEventListener('click', (event) => {
-	const button = event.target.closest('[data-favorite]');
-	if (!button) return;
-	const toolId = Number(button.dataset.favorite);
-	if (pendingFavorites.has(toolId)) return;
-	const wasFavorite = favorites.has(toolId);
-	pendingFavorites.add(toolId);
-	if (wasFavorite) favorites.delete(toolId);
-	else favorites.add(toolId);
+	const favoriteButton = event.target.closest('[data-favorite]');
+	if (favoriteButton) {
+		const toolId = Number(favoriteButton.dataset.favorite);
+		if (pendingFavorites.has(toolId)) return;
+		const wasFavorite = favorites.has(toolId);
+		pendingFavorites.add(toolId);
+		if (wasFavorite) favorites.delete(toolId);
+		else favorites.add(toolId);
+		render();
+		void fetch(`/api/favorites/${toolId}`, {
+			method: wasFavorite ? 'DELETE' : 'PUT',
+			headers: { 'X-Browser-Id': browserId, Accept: 'application/json' },
+		}).then((response) => {
+			if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+			setError('favorites');
+		}).catch((error) => {
+			console.error(error);
+			if (wasFavorite) favorites.add(toolId);
+			else favorites.delete(toolId);
+			setError('favorites', 'お気に入りを保存できませんでした。時間をおいて再度お試しください。');
+		}).finally(() => {
+			pendingFavorites.delete(toolId);
+			render();
+		});
+		return;
+	}
+
+	const ratingButton = event.target.closest('[data-rating-tool]');
+	const removeRatingButton = event.target.closest('[data-rating-remove]');
+	if (!ratingButton && !removeRatingButton) return;
+	const toolId = Number(ratingButton?.dataset.ratingTool || removeRatingButton.dataset.ratingRemove);
+	if (pendingRatings.has(toolId)) return;
+	const removing = Boolean(removeRatingButton);
+	const rating = removing ? null : Number(ratingButton.dataset.ratingValue);
+	pendingRatings.add(toolId);
 	render();
-	void fetch(`/api/favorites/${toolId}`, {
-		method: wasFavorite ? 'DELETE' : 'PUT',
-		headers: { 'X-Browser-Id': browserId, Accept: 'application/json' },
-	}).then((response) => {
+	void fetch(`/api/ratings/${toolId}`, {
+		method: removing ? 'DELETE' : 'PUT',
+		headers: {
+			'X-Browser-Id': browserId,
+			Accept: 'application/json',
+			...(removing ? {} : { 'Content-Type': 'application/json' }),
+		},
+		...(removing ? {} : { body: JSON.stringify({ rating }) }),
+	}).then(async (response) => {
 		if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
-		setError('favorites');
+		const result = await response.json();
+		const tool = tools.find((item) => item.id === toolId);
+		if (tool) {
+			tool.average_rating = result.data.average_rating;
+			tool.rating_count = result.data.rating_count;
+		}
+		if (result.data.rating === null) ratings.delete(toolId);
+		else ratings.set(toolId, result.data.rating);
+		setError('ratings');
 	}).catch((error) => {
 		console.error(error);
-		if (wasFavorite) favorites.add(toolId);
-		else favorites.delete(toolId);
-		setError('favorites', 'お気に入りを保存できませんでした。時間をおいて再度お試しください。');
+		setError('ratings', '評価を保存できませんでした。時間をおいて再度お試しください。');
 	}).finally(() => {
-		pendingFavorites.delete(toolId);
+		pendingRatings.delete(toolId);
 		render();
 	});
 });
@@ -263,9 +311,10 @@ document.addEventListener('keydown', (event) => {
 });
 
 async function initialize() {
-	const [categoriesResult, favoritesResult] = await Promise.allSettled([
+	const [categoriesResult, favoritesResult, ratingsResult] = await Promise.allSettled([
 		fetch('/api/categories'),
 		fetch('/api/favorites', { headers: { 'X-Browser-Id': browserId, Accept: 'application/json' } }),
+		fetch('/api/ratings', { headers: { 'X-Browser-Id': browserId, Accept: 'application/json' } }),
 	]);
 	try {
 		if (categoriesResult.status === 'rejected') throw categoriesResult.reason;
@@ -284,6 +333,15 @@ async function initialize() {
 	} catch (error) {
 		console.error(error);
 		setError('favorites', 'お気に入りを取得できませんでした。時間をおいて再度お試しください。');
+	}
+	try {
+		if (ratingsResult.status === 'rejected') throw ratingsResult.reason;
+		if (!ratingsResult.value.ok) throw new Error(`API request failed with status ${ratingsResult.value.status}`);
+		const result = await ratingsResult.value.json();
+		result.data.forEach(({ tool_id: toolId, rating }) => ratings.set(Number(toolId), Number(rating)));
+	} catch (error) {
+		console.error(error);
+		setError('ratings', '評価情報を取得できませんでした。時間をおいて再度お試しください。');
 	}
 	await loadTools();
 }
