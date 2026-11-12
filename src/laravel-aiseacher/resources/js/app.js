@@ -81,7 +81,7 @@ function render() {
 		const tags = [...(tool.tags || []), ...(tool.functions || [])];
 
 		return `
-			<article class="tool-card" style="animation-delay:${Math.min(index * 35, 245)}ms">
+			<article class="tool-card" data-tool-id="${tool.id}" style="animation-delay:${Math.min(index * 35, 245)}ms">
 				<div class="card-cover">
 					${image}<span class="cover-wash"></span><span class="cover-category">${escapeHtml(tool.category?.name)}</span>
 					<button class="favorite-button${favorite ? ' is-favorite' : ''}" type="button" data-favorite="${tool.id}" aria-label="${favorite ? 'お気に入りから削除' : 'お気に入りに追加'}" aria-pressed="${favorite}"${pendingFavorites.has(tool.id) ? ' disabled' : ''}>${favorite ? '♥' : '♡'}</button>
@@ -107,6 +107,55 @@ function render() {
 		pricing !== 'all' ? `<button class="filter-chip" type="button" data-remove="pricing">${pricing === 'free' ? '無料プランあり' : '有料プランのみ'}<span>×</span></button>` : '',
 		query ? `<button class="filter-chip" type="button" data-remove="query">「${escapeHtml(query)}」<span>×</span></button>` : '',
 	].join('');
+}
+
+function updateFavoriteCard(toolId) {
+	const card = grid.querySelector(`.tool-card[data-tool-id="${toolId}"]`);
+	const button = card?.querySelector('[data-favorite]');
+	if (!button) return;
+
+	const favorite = favorites.has(toolId);
+	button.classList.toggle('is-favorite', favorite);
+	button.textContent = favorite ? '♥' : '♡';
+	button.setAttribute('aria-label', favorite ? 'お気に入りから削除' : 'お気に入りに追加');
+	button.setAttribute('aria-pressed', String(favorite));
+	button.disabled = pendingFavorites.has(toolId);
+}
+
+function updateRatingCard(toolId) {
+	const card = grid.querySelector(`.tool-card[data-tool-id="${toolId}"]`);
+	if (!card) return;
+
+	const tool = tools.find((item) => item.id === toolId);
+	const summary = card.querySelector('.rating-summary');
+	const controls = card.querySelector('.rating-controls');
+	if (!tool || !summary || !controls) return;
+
+	summary.innerHTML = tool.average_rating === null
+		? '評価なし'
+		: `<span aria-hidden="true">★</span> ${Number(tool.average_rating).toFixed(1)} (${tool.rating_count})`;
+
+	const userRating = ratings.get(toolId) || 0;
+	controls.querySelectorAll('[data-rating-value]').forEach((button) => {
+		const selected = Number(button.dataset.ratingValue) === userRating;
+		button.classList.toggle('is-selected', selected);
+		button.setAttribute('aria-pressed', String(selected));
+		button.disabled = pendingRatings.has(toolId);
+	});
+
+	let removeButton = controls.querySelector('[data-rating-remove]');
+	if (userRating && !removeButton) {
+		removeButton = document.createElement('button');
+		removeButton.className = 'rating-remove';
+		removeButton.type = 'button';
+		removeButton.dataset.ratingRemove = String(toolId);
+		removeButton.textContent = '取り消す';
+		controls.append(removeButton);
+	} else if (!userRating) {
+		removeButton?.remove();
+		removeButton = null;
+	}
+	if (removeButton) removeButton.disabled = pendingRatings.has(toolId);
 }
 
 function setError(key, message = '') {
@@ -241,7 +290,7 @@ grid.addEventListener('click', (event) => {
 		pendingFavorites.add(toolId);
 		if (wasFavorite) favorites.delete(toolId);
 		else favorites.add(toolId);
-		render();
+		updateFavoriteCard(toolId);
 		void fetch(`/api/favorites/${toolId}`, {
 			method: wasFavorite ? 'DELETE' : 'PUT',
 			headers: { 'X-Browser-Id': browserId, Accept: 'application/json' },
@@ -255,7 +304,7 @@ grid.addEventListener('click', (event) => {
 			setError('favorites', 'お気に入りを保存できませんでした。時間をおいて再度お試しください。');
 		}).finally(() => {
 			pendingFavorites.delete(toolId);
-			render();
+			updateFavoriteCard(toolId);
 		});
 		return;
 	}
@@ -268,7 +317,7 @@ grid.addEventListener('click', (event) => {
 	const removing = Boolean(removeRatingButton);
 	const rating = removing ? null : Number(ratingButton.dataset.ratingValue);
 	pendingRatings.add(toolId);
-	render();
+	updateRatingCard(toolId);
 	void fetch(`/api/ratings/${toolId}`, {
 		method: removing ? 'DELETE' : 'PUT',
 		headers: {
@@ -288,12 +337,13 @@ grid.addEventListener('click', (event) => {
 		if (result.data.rating === null) ratings.delete(toolId);
 		else ratings.set(toolId, result.data.rating);
 		setError('ratings');
+		updateRatingCard(toolId);
 	}).catch((error) => {
 		console.error(error);
 		setError('ratings', '評価を保存できませんでした。時間をおいて再度お試しください。');
 	}).finally(() => {
 		pendingRatings.delete(toolId);
-		render();
+		updateRatingCard(toolId);
 	});
 });
 
