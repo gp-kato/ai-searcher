@@ -12,7 +12,7 @@ let selectedCategory = '';
 let selectedCategoryName = '';
 let query = '';
 let pricing = 'all';
-let sortOrder = 'recommended';
+let sortOrder = 'naming';
 let currentPage = 1;
 let lastPage = 1;
 let requestController;
