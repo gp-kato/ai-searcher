@@ -167,8 +167,9 @@ function setError(key, message = '') {
 
 async function loadTools({ append = false } = {}) {
 	requestController?.abort();
-	requestController = new AbortController();
-	moreButton.disabled = append;
+	const controller = new AbortController();
+	requestController = controller;
+	moreButton.disabled = true;
 	const params = new URLSearchParams({
 		page: String(currentPage),
 		per_page: String(pageSize),
@@ -179,7 +180,7 @@ async function loadTools({ append = false } = {}) {
 	if (selectedCategory) params.set('category', selectedCategory);
 
 	try {
-		const response = await fetch(`/api/tools?${params}`, { signal: requestController.signal });
+		const response = await fetch(`/api/tools?${params}`, { signal: controller.signal });
 		if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
 		const result = await response.json();
 		if (append) tools.push(...result.data);
@@ -201,7 +202,7 @@ async function loadTools({ append = false } = {}) {
 		}
 		setError('tools', 'AIツール情報を取得できませんでした。時間をおいて再度お試しください。');
 	} finally {
-		moreButton.disabled = false;
+		if (requestController === controller) moreButton.disabled = false;
 	}
 }
 
@@ -305,6 +306,7 @@ grid.addEventListener('click', (event) => {
 		}).finally(() => {
 			pendingFavorites.delete(toolId);
 			updateFavoriteCard(toolId);
+			if (sortOrder === 'popularity') refresh();
 		});
 		return;
 	}
