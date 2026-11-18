@@ -82,7 +82,6 @@
                                 <option value="popularity">人気順</option>
                             </select>
                         </div>
-                        <div class="results-controls"><span id="result-count" aria-live="polite">0件</span><label for="sort-select" class="sr-only">並べ替え</label><select id="sort-select"><option value="naming">名前順</option><option value="newest">新着順</option></select></div>
                     </div>
                     <div class="active-filters" id="active-filters" aria-live="polite"></div>
                     <p class="api-error" id="api-error" role="alert" hidden></p>
