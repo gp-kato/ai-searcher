@@ -16,7 +16,7 @@ class ToolController extends Controller
             'q' => ['nullable', 'string', 'max:255'],
             'category' => ['nullable', 'string', 'max:100'],
             'pricing' => ['nullable', 'in:all,free,paid'],
-            'sort' => ['nullable', 'in:recommended,newest'],
+            'sort' => ['nullable', 'in:naming,newest'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
@@ -42,7 +42,7 @@ class ToolController extends Controller
             ->when(($filters['pricing'] ?? 'all') === 'free', fn (Builder $query) => $query->whereIn('pricing_system', ['Free', 'Freemium']))
             ->when(($filters['pricing'] ?? 'all') === 'paid', fn (Builder $query) => $query->where('pricing_system', 'Paid'));
 
-        if (($filters['sort'] ?? 'recommended') === 'newest') {
+        if (($filters['sort'] ?? 'naming') === 'newest') {
             $tools->orderByDesc('created_at')->orderByDesc('id');
         } else {
             $tools->orderBy('name')->orderBy('id');
