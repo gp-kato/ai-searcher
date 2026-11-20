@@ -7,6 +7,7 @@ use App\Models\Tag;
 use App\Models\Tool;
 use App\Models\ToolFavorite;
 use App\Models\ToolFunction;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -104,6 +105,57 @@ class ToolApiTest extends TestCase
         $this->getJson('/api/tools?per_page=1000')
             ->assertUnprocessable()
             ->assertJsonValidationErrors('per_page');
+    }
+
+    public function test_tool_can_be_created_with_category_tags_and_functions(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $category = $this->createCategory('Writing', 'writing');
+        $tag = Tag::create(['name' => 'Text', 'slug' => 'text']);
+        $function = ToolFunction::create(['name' => 'Drafting', 'slug' => 'drafting']);
+
+        $this->actingAs($admin)->post('/admin/tools', [
+            'name' => 'New Article Tool',
+            'url' => 'https://example.com/article-tool',
+            'description' => '文章作成を支援します。',
+            'pricing_system' => 'Freemium',
+            'category_id' => $category->id,
+            'tag_ids' => [$tag->id],
+            'function_ids' => [$function->id],
+        ])
+            ->assertRedirect('/admin/tools')
+            ->assertSessionHas('status', 'ツールを追加しました。');
+
+        $this->assertDatabaseHas('tools', [
+            'name' => 'New Article Tool',
+            'pricing_system' => 'Freemium',
+            'is_verified' => false,
+        ]);
+        $this->assertDatabaseHas('tag_tool', ['tag_id' => $tag->id]);
+        $this->assertDatabaseHas('tool_function', ['function_id' => $function->id]);
+    }
+
+    public function test_tool_creation_validates_required_fields(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)->post('/admin/tools', [])
+            ->assertSessionHasErrors([
+                'name',
+                'url',
+                'description',
+                'pricing_system',
+                'category_id',
+            ]);
+    }
+
+    public function test_tool_admin_page_rejects_non_admin_users(): void
+    {
+        $user = User::factory()->create(['is_admin' => false]);
+
+        $this->actingAs($user)
+            ->get('/admin/tools')
+            ->assertForbidden();
     }
 
     public function test_favorites_are_saved_and_restored_per_browser(): void
