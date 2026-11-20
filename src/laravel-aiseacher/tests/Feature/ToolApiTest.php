@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Tag;
 use App\Models\Tool;
+use App\Models\ToolFavorite;
 use App\Models\ToolFunction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -59,6 +60,28 @@ class ToolApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.name', 'Article Assistant');
+    }
+
+    public function test_tools_api_sorts_by_favorite_count_when_popularity_is_requested(): void
+    {
+        $category = $this->createCategory('Writing', 'writing');
+        $popularTool = $this->createTool($category, 'Popular Tool');
+        $lessPopularTool = $this->createTool($category, 'Less Popular Tool');
+        $unfavoritedTool = $this->createTool($category, 'Unfavorited Tool');
+
+        foreach ([
+            ['browser_id' => 'b44b8c1e-c7b3-458f-a017-09ce7312d55e', 'tool_id' => $popularTool->id],
+            ['browser_id' => '7a1dfe05-6884-4e77-94fd-126b0d03daac', 'tool_id' => $popularTool->id],
+            ['browser_id' => '871312a2-e4dc-456a-afcb-439084ca0254', 'tool_id' => $lessPopularTool->id],
+        ] as $favorite) {
+            ToolFavorite::create($favorite);
+        }
+
+        $this->getJson('/api/tools?sort=popularity')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $popularTool->id)
+            ->assertJsonPath('data.1.id', $lessPopularTool->id)
+            ->assertJsonPath('data.2.id', $unfavoritedTool->id);
     }
 
     public function test_categories_api_returns_tool_counts(): void

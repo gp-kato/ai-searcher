@@ -16,7 +16,7 @@ class ToolController extends Controller
             'q' => ['nullable', 'string', 'max:255'],
             'category' => ['nullable', 'string', 'max:100'],
             'pricing' => ['nullable', 'in:all,free,paid'],
-            'sort' => ['nullable', 'in:naming,newest'],
+            'sort' => ['nullable', 'in:naming,newest,popularity'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
@@ -25,6 +25,7 @@ class ToolController extends Controller
             ->with(['category:id,name,slug', 'tags:id,name,slug', 'functions:id,name,slug'])
             ->withAvg('ratings', 'rating')
             ->withCount('ratings')
+            ->withCount('favorites')
             ->when($filters['q'] ?? null, function (Builder $query, string $keyword): void {
                 $query->where(function (Builder $query) use ($keyword): void {
                     $query->where('name', 'like', "%{$keyword}%")
@@ -44,6 +45,8 @@ class ToolController extends Controller
 
         if (($filters['sort'] ?? 'naming') === 'newest') {
             $tools->orderByDesc('created_at')->orderByDesc('id');
+        } elseif (($filters['sort'] ?? 'recommended') === 'popularity') {
+            $tools->orderByDesc('favorites_count')->orderBy('name')->orderBy('id');
         } else {
             $tools->orderBy('name')->orderBy('id');
         }
