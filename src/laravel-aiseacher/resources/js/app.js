@@ -1,4 +1,8 @@
 import './bootstrap';
+import Alpine from 'alpinejs';
+
+window.Alpine = Alpine;
+Alpine.start();
 
 const grid = document.querySelector('#tool-grid');
 const input = document.querySelector('#search-input');
@@ -221,14 +225,14 @@ function resetFilters() {
 	refresh();
 }
 
-document.querySelector('#search-form').addEventListener('submit', (event) => {
+document.querySelector('#search-form')?.addEventListener('submit', (event) => {
 	event.preventDefault();
 	query = input.value;
 	window.clearTimeout(searchTimer);
 	refresh();
 });
 
-input.addEventListener('input', () => {
+input?.addEventListener('input', () => {
 	query = input.value;
 	window.clearTimeout(searchTimer);
 	searchTimer = window.setTimeout(refresh, 250);
@@ -241,7 +245,7 @@ document.querySelectorAll('.suggestions button').forEach((button) => button.addE
 	input.focus();
 }));
 
-categoryOptions.addEventListener('click', (event) => {
+categoryOptions?.addEventListener('click', (event) => {
 	const button = event.target.closest('[data-category]');
 	if (!button) return;
 	selectedCategory = button.dataset.category;
@@ -255,15 +259,15 @@ document.querySelectorAll('input[name="pricing"]').forEach((radio) => radio.addE
 	refresh();
 }));
 
-document.querySelector('#sort-select').addEventListener('change', (event) => {
+document.querySelector('#sort-select')?.addEventListener('change', (event) => {
 	sortOrder = event.target.value;
 	refresh();
 });
 
-document.querySelector('#clear-filters').addEventListener('click', resetFilters);
-document.querySelector('#empty-clear').addEventListener('click', resetFilters);
+document.querySelector('#clear-filters')?.addEventListener('click', resetFilters);
+document.querySelector('#empty-clear')?.addEventListener('click', resetFilters);
 
-document.querySelector('#active-filters').addEventListener('click', (event) => {
+document.querySelector('#active-filters')?.addEventListener('click', (event) => {
 	const remove = event.target.closest('[data-remove]')?.dataset.remove;
 	if (remove === 'category') {
 		selectedCategory = '';
@@ -281,7 +285,7 @@ document.querySelector('#active-filters').addEventListener('click', (event) => {
 	if (remove) refresh();
 });
 
-grid.addEventListener('click', (event) => {
+grid?.addEventListener('click', (event) => {
 	const favoriteButton = event.target.closest('[data-favorite]');
 	if (favoriteButton) {
 		const toolId = Number(favoriteButton.dataset.favorite);
@@ -347,14 +351,14 @@ grid.addEventListener('click', (event) => {
 	});
 });
 
-moreButton.addEventListener('click', () => {
+moreButton?.addEventListener('click', () => {
 	if (currentPage >= lastPage) return;
 	currentPage += 1;
 	void loadTools({ append: true });
 });
 
 document.addEventListener('keydown', (event) => {
-	if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+	if (input && event.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
 		event.preventDefault();
 		input.focus();
 	}
@@ -396,4 +400,4 @@ async function initialize() {
 	await loadTools();
 }
 
-void initialize();
+if (grid) void initialize();

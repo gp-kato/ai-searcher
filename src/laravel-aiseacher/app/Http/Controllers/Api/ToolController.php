@@ -3,13 +3,94 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Tag;
 use App\Models\Tool;
+use App\Models\ToolFunction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class ToolController extends Controller
 {
+    public function admin(): View
+    {
+        return view('admin.tools', [
+            'categories' => \App\Models\Category::query()->orderBy('name')->get(['id', 'name', 'slug']),
+            'tags' => Tag::query()->orderBy('name')->get(['id', 'name', 'slug']),
+            'functions' => ToolFunction::query()->orderBy('name')->get(['id', 'name', 'slug']),
+        ]);
+    }
+
+    public function store(Request $request): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'url' => ['required', 'url:http,https', 'max:255'],
+            'description' => ['required', 'string', 'max:5000'],
+            'pricing_system' => ['required', 'in:Free,Freemium,Paid'],
+            'category_id' => ['required', 'integer', 'exists:categories,id'],
+            'tag_ids' => ['nullable', 'array'],
+            'tag_ids.*' => ['integer', 'exists:tags,id'],
+            'function_ids' => ['nullable', 'array'],
+            'function_ids.*' => ['integer', 'exists:functions,id'],
+        ]);
+
+        $tool = DB::transaction(function () use ($validated): Tool {
+            $tool = Tool::create([
+                'name' => $validated['name'],
+                'url' => $validated['url'],
+                'description' => $validated['description'],
+                'pricing_system' => $validated['pricing_system'],
+                'category_id' => $validated['category_id'],
+                'is_verified' => false,
+            ]);
+            $tool->tags()->sync($validated['tag_ids'] ?? []);
+            $tool->functions()->sync($validated['function_ids'] ?? []);
+
+            return $tool;
+        });
+
+        $tool->load(['category:id,name,slug', 'tags:id,name,slug', 'functions:id,name,slug']);
+
+        if (! $request->expectsJson()) {
+            return redirect()->route('admin.tools')->with('status', 'ツールを追加しました。');
+        }
+
+        return response()->json([
+            'data' => [
+                'id' => $tool->id,
+                'name' => $tool->name,
+                'url' => $tool->url,
+                'description' => $tool->description,
+                'pricing_system' => $tool->pricing_system,
+                'thumbnail' => $tool->thumbnail,
+                'is_verified' => $tool->is_verified,
+                'category' => $tool->category,
+                'tags' => $tool->tags,
+                'functions' => $tool->functions,
+                'average_rating' => null,
+                'rating_count' => 0,
+            ],
+        ], 201);
+    }
+
+    public function tags(): JsonResponse
+    {
+        return response()->json([
+            'data' => Tag::query()->orderBy('name')->get(['id', 'name', 'slug']),
+        ]);
+    }
+
+    public function functions(): JsonResponse
+    {
+        return response()->json([
+            'data' => ToolFunction::query()->orderBy('name')->get(['id', 'name', 'slug']),
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $filters = $request->validate([

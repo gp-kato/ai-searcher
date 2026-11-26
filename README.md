@@ -25,6 +25,31 @@ AIツールをページネーション付きで取得します。指定できる
 
 カテゴリ一覧を件数（`tools_count`）とともに返します。
 
+### 管理者によるツール登録
+
+管理者はBreezeログイン後、`/admin/categories`でカテゴリを登録し、`/admin/tools`からツールを登録します。カテゴリ追加時はカテゴリ名と、API検索にも使用するslug（英小文字・数字・ハイフン）を指定します。一般ユーザーには公開登録画面を表示しません。
+
+一般的なユーザー登録画面は提供しません。Seederは開発用と本番用に分かれています。
+
+### 開発環境
+
+動作確認用に、Factoryを使って管理者と非管理者を作成します。環境変数 `ADMIN_EMAIL`、`ADMIN_PASSWORD` は不要です。
+
+```sh
+docker compose exec php sh -c "cd laravel-aiseacher && php artisan migrate"
+docker compose exec php sh -c "cd laravel-aiseacher && php artisan db:seed --class=DevelopmentSeeder"
+```
+
+ログイン情報は `admin@example.com` / `test@example.com` ともにパスワード `password` です。このSeederは開発環境専用です。
+
+### 本番環境
+
+デプロイ環境のシークレットなどで `ADMIN_EMAIL` と `ADMIN_PASSWORD`（任意で `ADMIN_NAME`）を設定し、以下を実行します。本番用の `DatabaseSeeder` はFactoryやFakerを使わずに管理者を作成し、必須環境変数が不足している場合はエラーになります。再実行すると設定したパスワードで管理者情報を更新します。
+
+```sh
+docker compose exec php sh -c "cd laravel-aiseacher && php artisan db:seed --force"
+```
+
 お気に入り、参考評価、確認済みフラグの仕様は[ツール表示項目・お気に入り仕様](./docs/tool-metadata-and-favorites.md)を参照してください。
 
 ## 開発用サンプルデータ

@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\ToolRatingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/tools', [ToolController::class, 'index']);
+Route::get('/tags', [ToolController::class, 'tags']);
+Route::get('/functions', [ToolController::class, 'functions']);
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/favorites', [ToolFavoriteController::class, 'index']);
 Route::put('/favorites/{tool}', [ToolFavoriteController::class, 'store']);

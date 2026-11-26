@@ -20,9 +20,21 @@
             <nav class="top-nav" aria-label="メインナビゲーション">
                 <a class="nav-active" href="#discover">ツールを探す</a>
                 <a href="#popular">人気のツール</a>
-                <a href="mailto:hello@aifinder.jp?subject=掲載リクエスト">掲載リクエスト <span aria-hidden="true">↗</span></a>
+                @auth
+                    @if(auth()->user()->isAdmin())
+                        <a href="{{ route('admin.tools') }}">ツールを追加</a>
+                    @endif
+                @endauth
             </nav>
-            <a class="submit-link" href="mailto:hello@aifinder.jp?subject=掲載リクエスト">ツールを掲載する <span aria-hidden="true">↗</span></a>
+            @auth
+                @if(auth()->user()->isAdmin())
+                    <a class="submit-link" href="{{ route('admin.tools') }}">管理画面 <span aria-hidden="true">↗</span></a>
+                @else
+                    <a class="submit-link" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">ログアウト</a>
+                @endif
+            @else
+                <a class="submit-link" href="{{ route('login') }}">管理者ログイン</a>
+            @endauth
         </header>
 
         <main>
@@ -94,5 +106,9 @@
 
         <footer class="footer"><a class="brand footer-brand" href="/"><span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span><span>AI<span class="brand-light">FINDER</span></span></a><span>いい道具は、いい仕事をつくる。</span><span>© 2025 AI FINDER</span></footer>
     </div>
+
+    @auth
+        <form id="logout-form" action="{{ route('logout') }}" method="POST" hidden>@csrf</form>
+    @endauth
 </body>
 </html>
