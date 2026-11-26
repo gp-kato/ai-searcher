@@ -47,6 +47,7 @@
                                 @endforeach
                             </select>
                             <x-input-error :messages="$errors->get('category_id')" class="mt-2" />
+                            <a class="mt-2 inline-block text-sm text-indigo-600 underline hover:text-indigo-900 dark:text-indigo-400" href="{{ route('admin.categories') }}">カテゴリを追加</a>
                         </div>
 
                         <div>
