@@ -1,7 +1,9 @@
 <x-app-layout>
+    <x-slot name="title">AIツール追加 | AI FINDER</x-slot>
+
     <x-slot name="header">
         <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-            AIツール管理
+            AIツール追加
         </h2>
     </x-slot>
 
